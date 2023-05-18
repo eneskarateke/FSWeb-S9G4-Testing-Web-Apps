@@ -1,13 +1,12 @@
 import React from "react";
 import {
-  getByRole,
+  getByTestId,
+  queryAllByTestId,
+  queryByTestId,
+  queryByText,
   render,
   screen,
   waitFor,
-  fireEvent,
-  getByLabelText,
-  getByTestId,
-  queryByTestId,
 } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import userEvent from "@testing-library/user-event";
@@ -30,62 +29,53 @@ test("iletişim formu headerı render ediliyor", () => {
   expect(headerText).toBeInTheDocument();
 });
 
-test("kullanıcı adını 5 karakterden az girdiğinde BİR hata mesajı render ediyor.", () => {
+test("kullanıcı adını 5 karakterden az girdiğinde BİR hata mesajı render ediyor.", async () => {
   render(<IletisimFormu />);
 
-  const adInput = screen.getByPlaceholderText("İlhan");
-  fireEvent.change(adInput, { target: { value: "Enes" } });
+  const adInput = screen.getByLabelText("Ad*");
 
-  //   const submitButton = getByText("Gönder");
-  //   fireEvent.click(submitButton);
+  userEvent.type(adInput, "Enes");
 
-  const errorText = screen.getByText("Hata: ad en az 5 karakter olmalıdır.");
-  expect(errorText).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryAllByTestId("error").length).toBe(1);
+
+    expect(
+      screen.getByText("Hata: ad en az 5 karakter olmalıdır.")
+    ).toBeInTheDocument();
+  });
 });
 
 test("kullanıcı inputları doldurmadığında ÜÇ hata mesajı render ediliyor.", async () => {
   render(<IletisimFormu />);
 
-  //   const adInput = screen.getByPlaceholderText("İlhan");
-  //   const soyadInput = screen.getByPlaceholderText("Mansız");
-  //   const emailInput = screen.getByPlaceholderText("yüzyılıngolcüsü@hotmail.com");
-  const button = screen.getByText("Gönder");
+  const button = screen.getByRole("button");
 
-  fireEvent.click(button);
-  //   fireEvent.change(adInput, { target: { value: "" } });
-  //   fireEvent.change(soyadInput, { target: { value: "" } });
-  //   fireEvent.change(emailInput, { target: { value: "" } });
+  userEvent.click(button);
 
-  const errorElement1 = screen.getByText(
-    "Hata: ad en az 5 karakter olmalıdır."
-  );
-  const errorElement2 = screen.getByText("Hata: soyad gereklidir.");
-  const errorElement3 = screen.getByText(
-    "Hata: email geçerli bir email adresi olmalıdır."
-  );
+  const tumHatalar = screen.getAllByTestId("error");
 
-  expect(errorElement1).toBeInTheDocument();
-  expect(errorElement2).toBeInTheDocument();
-  expect(errorElement3).toBeInTheDocument();
+  await waitFor(() => {
+    expect(tumHatalar.length).toBe(3);
+  });
 });
 
 test("kullanıcı doğru ad ve soyad girdiğinde ama email girmediğinde BİR hata mesajı render ediliyor.", async () => {
   render(<IletisimFormu />);
 
-  const adInput = screen.getByPlaceholderText("İlhan");
+  const adInput = screen.getByLabelText("Ad*");
+
   const soyadInput = screen.getByPlaceholderText("Mansız");
   const button = screen.getByText("Gönder");
 
-  fireEvent.change(adInput, { target: { value: "Hamza" } });
-  fireEvent.change(soyadInput, { target: { value: "Karateke" } });
+  userEvent.type(adInput, "Hamza");
 
-  fireEvent.click(button);
+  userEvent.type(soyadInput, "Karateke");
 
-  const errorElement = screen.getByText(
-    "Hata: email geçerli bir email adresi olmalıdır."
-  );
+  userEvent.click(button);
 
-  expect(errorElement).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getAllByTestId("error").length).toBe(1);
+  });
 });
 
 test('geçersiz bir mail girildiğinde "email geçerli bir email adresi olmalıdır." hata mesajı render ediliyor', async () => {
@@ -93,7 +83,7 @@ test('geçersiz bir mail girildiğinde "email geçerli bir email adresi olmalıd
 
   const emailInput = screen.getByPlaceholderText("yüzyılıngolcüsü@hotmail.com");
 
-  fireEvent.change(emailInput, { target: { value: "asdfsad" } });
+  userEvent.type(emailInput, "sadsadfd");
 
   const errorElement3 = screen.getByText(
     "Hata: email geçerli bir email adresi olmalıdır."
@@ -109,43 +99,64 @@ test('soyad girilmeden gönderilirse "soyad gereklidir." mesajı render ediliyor
   const emailInput = screen.getByPlaceholderText("yüzyılıngolcüsü@hotmail.com");
   const button = screen.getByText("Gönder");
 
-  fireEvent.change(adInput, { target: { value: "sadasdasd" } });
-  fireEvent.change(emailInput, { target: { value: "eneskarateke@gmail.com" } });
-  fireEvent.click(button);
+  userEvent.type(adInput, "asdsads");
+  userEvent.type(emailInput, "eneskarateke@gmail.com");
+  userEvent.click(button);
 
   const errorElement2 = screen.getByText("Hata: soyad gereklidir.");
 
-  expect(errorElement2).toBeInTheDocument();
+  await waitFor(() => {
+    expect(errorElement2).toBeInTheDocument();
+  });
 });
 
 test("ad,soyad, email render ediliyor. mesaj bölümü doldurulmadığında hata mesajı render edilmiyor.", async () => {
-  const { getByLabelText, getByText, queryByTestId, getByTestId } = render(
+  const { getByLabelText, getByText, queryAllByTestId } = render(
     <IletisimFormu />
   );
 
-  fireEvent.change(getByLabelText("Ad*"), { target: { value: "hamza" } });
-  fireEvent.change(getByLabelText("Soyad*"), { target: { value: "karateke" } });
-  fireEvent.change(getByLabelText("Email*"), {
-    target: { value: "eneskarteke@gmail.com" },
+  userEvent.type(getByLabelText("Ad*"), "hamza");
+  userEvent.type(getByLabelText("Soyad*"), "karateke");
+  userEvent.type(getByLabelText("Email*"), "eneskarateke@gmail.com");
+
+  userEvent.click(getByText("Gönder"));
+
+  await waitFor(() => {
+    expect(screen.getByTestId("firstnameDisplay").textContent).toBe(
+      "Ad: hamza"
+    );
+    expect(screen.getByTestId("lastnameDisplay").textContent).toBe(
+      "Soyad: karateke"
+    );
+    expect(screen.getByTestId("emailDisplay").textContent).toBe(
+      "Email: eneskarateke@gmail.com"
+    );
+    expect(queryAllByTestId("error").length).toBe(0);
   });
-
-  fireEvent.click(getByText("Gönder"));
-
-  expect(getByTestId("display-data")).toBeInTheDocument();
-  expect(queryByTestId("error4")).toBeNull;
 });
 
 test("form gönderildiğinde girilen tüm değerler render ediliyor.", async () => {
-  const { getByLabelText, getByText, getByTestId } = render(<IletisimFormu />);
+  const { getByLabelText, getByText } = render(<IletisimFormu />);
 
-  fireEvent.change(getByLabelText("Ad*"), { target: { value: "hamza" } });
-  fireEvent.change(getByLabelText("Soyad*"), { target: { value: "karateke" } });
-  fireEvent.change(getByLabelText("Email*"), {
-    target: { value: "eneskarteke@gmail.com" },
+  userEvent.type(getByLabelText("Ad*"), "hamza");
+  userEvent.type(getByLabelText("Soyad*"), "karateke");
+  userEvent.type(getByLabelText("Email*"), "eneskarateke@gmail.com");
+  userEvent.type(getByLabelText("Mesaj"), "hello");
+
+  userEvent.click(getByText("Gönder"));
+  await waitFor(() => {
+    expect(screen.getByTestId("firstnameDisplay").textContent).toBe(
+      "Ad: hamza"
+    );
+    expect(screen.getByTestId("lastnameDisplay").textContent).toBe(
+      "Soyad: karateke"
+    );
+    expect(screen.getByTestId("emailDisplay").textContent).toBe(
+      "Email: eneskarateke@gmail.com"
+    );
+    expect(screen.getByTestId("messageDisplay").textContent).toBe(
+      "Mesaj: hello"
+    );
+    expect(screen.queryAllByTestId("error").length).toBe(0);
   });
-  fireEvent.change(getByLabelText("Mesaj"), { target: { value: "hello" } });
-
-  fireEvent.click(getByText("Gönder"));
-
-  expect(getByTestId("display-data")).toBeInTheDocument();
 });

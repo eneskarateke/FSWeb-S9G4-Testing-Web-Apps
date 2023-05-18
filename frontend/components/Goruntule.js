@@ -15,7 +15,6 @@ const Goruntule = (props) => {
       )}
       {soyad && (
         <p data-testid="lastnameDisplay">
-          {" "}
           <strong>Soyad: </strong>
           {soyad}
         </p>
